@@ -27,6 +27,7 @@ def get_backup_list
 end
 
 def unique_backup_name
+  puts "Finding unique name"
   basename = "laptop-#{Date.today.strftime("%Y-%m-%d")}"
 
   alternatives = (1..99).map do |n|
@@ -35,6 +36,8 @@ def unique_backup_name
 
   ([basename]+alternatives).find do |name|
     !get_backup_list.include?(name)
+  end.tap do |name|
+    puts "... Found: #{name}"
   end
 end
 
