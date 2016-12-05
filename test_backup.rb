@@ -30,14 +30,36 @@ class TestBackup
     write_files_and_shas_to_file(initial_collection: existing_files_and_shas, additions: new_files)
   end
 
+  def test_file_selection
+    puts "Testing latest files"
+    test_latest_photos
+
+    puts
+
+    puts "Testing random files"
+    test_random_files
+  end
+
   def test_random_files
     random_files_and_shas = files_and_shas.to_a.sample(10, random: SecureRandom).to_h
 
-    retrieve_from_backup(random_files_and_shas.keys) do |files_and_retrieved_files|
+    test_files(random_files_and_shas)
+  end
+
+  def test_latest_photos
+    latest_files_and_shas = Hash[files_and_shas.to_a.reverse.take(10)]
+
+    test_files(latest_files_and_shas)
+  end
+
+  private
+
+  def test_files(files_and_shas)
+    retrieve_from_backup(files_and_shas.keys) do |files_and_retrieved_files|
       files_and_retrieved_files.each do |file, retrieved_file|
         backed_up_sha = Digest::SHA256.hexdigest(File.read(retrieved_file))
 
-        if backed_up_sha == random_files_and_shas[file]
+        if backed_up_sha == files_and_shas[file]
           puts "SUCCESS: #{file}"
         else
           puts "ERROR! SHA mismatch for #{file}"
@@ -46,7 +68,6 @@ class TestBackup
     end
   end
 
-  private
   def write_files_and_shas_to_file(initial_collection:, additions:)
     if additions.length.zero?
       puts "No files to add"
@@ -113,7 +134,7 @@ end
 allowed_params = {
   "--create-sha-file" => ->() { TestBackup.new.create_shas_file },
   "--update-sha-file" => ->() { TestBackup.new.update_shas_file },
-  "--test"            => ->() { TestBackup.new.test_random_files }
+  "--test"            => ->() { TestBackup.new.test_file_selection }
 }
 
 action = allowed_params.keys.detect do |key|
