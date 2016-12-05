@@ -3,8 +3,12 @@
 require 'date'
 require 'open3'
 require 'shellwords'
+require 'fileutils'
 
 require 'dotenv'
+
+# This is necessary for running the script with `bash -c` from Scheduled Tasks
+FileUtils.cd(__dir__)
 
 $LOAD_PATH << __dir__
 
