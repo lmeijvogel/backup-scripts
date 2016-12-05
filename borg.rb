@@ -10,7 +10,9 @@ class Borg
   end
 
   def backup(backup_name, source:)
-    pid = spawn(ENV, "/usr/local/bin/borg create -v --progress #{ENV.fetch('BORG_REPO')}::#{backup_name} #{Shellwords.shellescape(source)}")
+
+    command = "/usr/local/bin/borg create -v --progress --stats #{ENV.fetch('BORG_REPO')}::#{backup_name} #{Shellwords.shellescape(source)}"
+    pid = spawn(ENV, command)
 
     Process.wait(pid)
   end
