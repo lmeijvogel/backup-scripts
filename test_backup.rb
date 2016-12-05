@@ -70,7 +70,7 @@ class TestBackup
 
   def write_files_and_shas_to_file(initial_collection:, additions:)
     if additions.length.zero?
-      puts "No files to add"
+      puts "No new files"
       return
     end
 
@@ -134,7 +134,7 @@ end
 allowed_params = {
   "--create-sha-file" => ->() { TestBackup.new.create_shas_file },
   "--update-sha-file" => ->() { TestBackup.new.update_shas_file },
-  "--test"            => ->() { TestBackup.new.test_file_selection }
+  "--test"            => ->() { TestBackup.new.update_shas_file ; TestBackup.new.test_file_selection }
 }
 
 action = allowed_params.keys.detect do |key|
