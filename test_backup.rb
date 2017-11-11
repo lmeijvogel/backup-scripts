@@ -30,14 +30,32 @@ class TestBackup
     write_files_and_shas_to_file(initial_collection: existing_files_and_shas, additions: new_files)
   end
 
-  def test_file_selection
-    puts "Testing latest files"
-    test_latest_photos
+  def test_file_selection(files)
+    if files.any?
+      test_selected_files(files)
+    else
+      puts "Testing latest files"
+      test_latest_photos
 
-    puts
+      puts
 
-    puts "Testing random files"
-    test_random_files
+      puts "Testing random files"
+      test_random_files
+    end
+  end
+
+  def test_selected_files(files)
+    selected_files_and_shas = files_and_shas.select { |key, value| files.include?(key) }
+
+    if selected_files_and_shas.empty?
+      puts "No files exist!"
+      exit 1
+    elsif selected_files_and_shas.length != files.length
+      puts "Some files do not exist"
+      exit 2
+    end
+
+    test_files(selected_files_and_shas)
   end
 
   def test_random_files
@@ -131,10 +149,12 @@ class TestBackup
   end
 end
 
+backup_tester = TestBackup.new
+
 allowed_params = {
-  "--create-sha-file" => ->() { TestBackup.new.create_shas_file },
-  "--update-sha-file" => ->() { TestBackup.new.update_shas_file },
-  "--test"            => ->() { TestBackup.new.update_shas_file ; TestBackup.new.test_file_selection }
+  '--create-sha-file' => ->() { backup_tester.create_shas_file },
+  '--update-sha-file' => ->() { backup_tester.update_shas_file },
+  '--test'            => ->(files) { backup_tester.update_shas_file ; backup_tester.test_file_selection(files) }
 }
 
 action = allowed_params.keys.detect do |key|
@@ -151,4 +171,4 @@ if action.nil?
   exit 1
 end
 
-allowed_params[action].call
+allowed_params[action].call(ARGV[1..-1])
