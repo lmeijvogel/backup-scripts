@@ -1,1 +1,47 @@
 These are my scripts for running Borgbackup scripts and performing random checks whether they work.
+
+NOTE: I do the infrastructural part with Ansible:
+* Installing borg on the server, and
+* making sure SSH access, and
+* creating the repository path.
+
+Initializing a new borgbackup repository:
+
+Make sure that the directory exists on the server:
+
+```
+$ cd ~backup
+$ mkdir -p repo/repos/desktop
+```
+
+To make client access to the server possible, create a ssh keypair on the client and allow it to access the server.
+You should restrict what that SSH key is allowed to do after logging in: you can set a mandatory command that it
+should execute (and nothing else). For example:
+```
+# /home/backup/.ssh/authorized_keys
+command="cd /var/borgbackup/repo/repos/desktop;borg serve --append-only --restrict-to-path /var/borgbackup/repo/repos/desktop",\
+no-port-forwarding,no-X11-forwarding,no-pty,no-agent-forwarding,no-user-rc ssh-rsa xxsshkeyxx backup-client@workstation
+```
+Which is all on one line and where `ssh-rsa xxsshkeyxx backup-client@workstation` is the contents of your id_rsa.pub file
+
+Then initialize the repository from the client (it should have SSH access):
+
+```
+  $ borg init --encryption=repokey --append-only backup@backup-host:desktop                                                                       2 ↵
+  Enter new passphrase: 
+  Enter same passphrase again: 
+  Do you want your passphrase to be displayed for verification? [yN]: y
+```
+
+Now, add the passphrase to the .env file, and add the backup server location and source location as well:
+```
+SOURCE_DIR=data/user_data
+BORG_REPO=backup@backup-host:desktop
+BORG_PASSPHRASE=xxxx
+BACKUP_NAME_PREFIX=desktop
+```
+
+The backup name prefix does not have to match the path in BORG_REPO, it is used to "name" consecutive backups;
+the script will generate names like `desktop-2017-11-18`
+
+Perform the ./perform-daily-backup.rb command, it should perform the backup without questions.
