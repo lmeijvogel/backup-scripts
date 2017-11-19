@@ -78,10 +78,15 @@ class TestBackup
   private
 
   def test_files(files_and_shas)
+    unless ENV.key?("BACKEND")
+      puts "Please specify BACKEND=borg or BACKEND=b2 in ENV."
+      exit 1
+    end
+
     tmp_path = 'tmp_retrieve'
 
     in_temp_dir(tmp_path) do
-      retrieve_from_borgbackup(files_and_shas.keys) do |file, retrieved_file|
+      retrieve_from_backup(files_and_shas.keys, backend: ENV['BACKEND']) do |file, retrieved_file|
         backed_up_sha = Digest::SHA256.hexdigest(File.read(retrieved_file))
 
         if backed_up_sha == files_and_shas[file]
@@ -115,28 +120,31 @@ class TestBackup
     end
   end
 
-  def retrieve_from_b2(files)
-    files.each do |filename|
-      Open3.popen3("duplicacy cat #{Shellwords.shellescape(filename)}") do |_, stdout, stderr, wait_thread|
-        File.open(File.basename(filename), 'w') do |download_file|
-          download_file.write(stdout.read)
+  def retrieve_from_backup(files, backend:)
+    if backend == 'b2'
+      files.each do |filename|
+        Open3.popen3("duplicacy cat #{Shellwords.shellescape(filename)}") do |_, stdout, stderr, wait_thread|
+          File.open(File.basename(filename), 'w') do |download_file|
+            download_file.write(stdout.read)
+          end
         end
+
+        download_path = File.expand_path(File.basename(filename))
+
+        yield [filename, download_path]
       end
+    elsif backend == 'borg'
+      input_and_download_paths = Borg.new.extract(files, archive_name: latest_archive)
 
-      download_path = File.expand_path(File.basename(filename))
-      yield [filename, download_path]
-    end
-  end
+      inputs_and_absolute_download_paths = input_and_download_paths.to_a.map do |file, download_path|
+        [file, File.expand_path(download_path)]
+      end.to_h
 
-  def retrieve_from_borgbackup(files)
-    input_and_download_paths = Borg.new.extract(files, archive_name: latest_archive)
-
-    inputs_and_absolute_download_paths = input_and_download_paths.to_a.map do |file, download_path|
-      [file, File.expand_path(download_path)]
-    end.to_h
-
-    inputs_and_absolute_download_paths.each do |input, absolute_download_path|
-      yield [input, absolute_download_path]
+      inputs_and_absolute_download_paths.each do |input, absolute_download_path|
+        yield [input, absolute_download_path]
+      end
+    else
+      raise "Unknown backend '#{backend}'"
     end
   end
 
