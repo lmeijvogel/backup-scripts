@@ -125,7 +125,13 @@ class TestBackup
   def latest_archive
     archive_names = Borg.new.list.each_line.map(&:split).map(&:first)
 
-    archive_names.sort.last
+    archive_names.sort do |a, b|
+      if a.end_with?('.checkpoint') && !b.end_with?('.checkpoint') && a.start_with?(b)
+        -1
+      else
+        a <=> b
+      end
+    end.last
   end
 
   def in_temp_dir(path)
