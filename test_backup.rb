@@ -17,9 +17,9 @@ require 'borg'
 
 Dotenv.load
 
-PHOTOS_DIR = File.join(ENV.fetch("SOURCE_DIR"), "My Pictures")
+PHOTOS_DIR = File.join(ENV.fetch('SOURCE_DIR'), 'My Pictures')
 
-SHAS_FILE_NAME="shas.yml"
+SHAS_FILE_NAME = 'shas.yml'.freeze
 
 
 class TestBackup
@@ -39,24 +39,24 @@ class TestBackup
     if files.any?
       test_selected_files(files)
     else
-      puts "Testing latest files"
+      puts 'Testing latest files'
       test_latest_photos
 
       puts
 
-      puts "Testing random files"
+      puts 'Testing random files'
       test_random_files
     end
   end
 
   def test_selected_files(files)
-    selected_files_and_shas = files_and_shas.select { |key, value| files.include?(key) }
+    selected_files_and_shas = files_and_shas.select { |key, _| files.include?(key) }
 
     if selected_files_and_shas.empty?
-      puts "No files exist!"
+      puts 'No files exist!'
       exit 1
     elsif selected_files_and_shas.length != files.length
-      puts "Some files do not exist"
+      puts 'Some files do not exist'
       exit 2
     end
 
@@ -91,11 +91,11 @@ class TestBackup
 
   def write_files_and_shas_to_file(initial_collection:, additions:)
     if additions.length.zero?
-      puts "No new files"
+      puts 'No new files'
       return
     end
 
-    progress_bar = ProgressBar.create(total: additions.count, format: "|%w>%i| %c/%C (%e)")
+    progress_bar = ProgressBar.create(total: additions.count, format: '|%w>%i| %c/%C (%e)')
 
     files_and_shas = additions.inject(initial_collection) do |acc, file|
       digest = Digest::SHA256.hexdigest(File.read(file))
@@ -169,11 +169,11 @@ class TestBackup
   end
 
   def files_and_shas
-    @files_and_shas ||= YAML.load(File.read(SHAS_FILE_NAME))["shas"]
+    @files_and_shas ||= YAML.safe_load(File.read(SHAS_FILE_NAME))['shas']
   end
 
   def all_photos
-    glob = File.join(PHOTOS_DIR, "**", "*.{JPG,jpg}")
+    glob = File.join(PHOTOS_DIR, '**', '*.{JPG,jpg}')
     @all_photos ||= Dir.glob(glob)
   end
 end
@@ -191,9 +191,9 @@ action = allowed_params.keys.detect do |key|
 end
 
 if action.nil?
-  puts "Allowed actions: "
+  puts 'Allowed actions: '
 
-  allowed_params.keys.each do |param|
+  allowed_params.each_key do |param|
     puts "  #{param}"
   end
 
