@@ -4,26 +4,31 @@ class Borg
   def list
     list_backups_command = "/usr/local/bin/borg list #{ENV.fetch('BORG_REPO')}"
 
-    stdout, _, _ = Open3.capture3(ENV, list_backups_command)
+    stdout, = Open3.capture3(ENV, list_backups_command)
 
-    return stdout
+    stdout
   end
 
   def backup(backup_name, source:)
+    backup_path = "#{ENV.fetch('BORG_REPO')}::#{backup_name}"
 
-    command = "/usr/local/bin/borg create -v --progress --stats #{ENV.fetch('BORG_REPO')}::#{backup_name} #{Shellwords.shellescape(source)}"
+    command = "#{borg} create -v --progress --stats #{backup_path} #{Shellwords.shellescape(source)}"
+
     pid = spawn(ENV, command)
 
     Process.wait(pid)
   end
 
   def extract(paths, archive_name:)
-    relative_paths = paths.map { |path| path[1..-1] }
+    paths_as_parameters = paths.map { |path| %("#{path}") }.join(' ')
+    command = %(#{borg} extract #{ENV.fetch('BORG_REPO')}::#{archive_name} #{paths_as_parameters})
 
-    paths_as_parameters = relative_paths.map { |path| %|"#{path}"| }.join(" ")
-    command = %|/usr/local/bin/borg extract #{ENV.fetch("BORG_REPO")}::#{archive_name} #{paths_as_parameters}|
     system(ENV, command)
 
-    Hash[paths.zip(relative_paths)]
+    Hash[paths.zip(paths)]
+  end
+
+  def borg
+    '/usr/local/bin/borg'
   end
 end
