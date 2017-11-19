@@ -28,7 +28,7 @@ end
 
 def unique_backup_name
   puts "Finding unique name"
-  basename = "laptop-#{Date.today.strftime("%Y-%m-%d")}"
+  basename = "desktop-#{Date.today.strftime("%Y-%m-%d")}"
 
   alternatives = (1..99).map do |n|
     sprintf("#{basename}_%02d", n)
