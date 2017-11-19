@@ -25,7 +25,7 @@ class Borg
 
     system(ENV, command)
 
-    Hash[paths.zip(paths)]
+    Hash[paths.zip(paths)].each
   end
 
   def borg

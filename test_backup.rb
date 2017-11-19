@@ -4,10 +4,15 @@ require 'digest'
 require 'fileutils'
 require 'yaml'
 
+require 'shellwords'
+require 'open3'
+require 'tempfile'
+
 require 'dotenv'
 require 'ruby-progressbar'
 
 $LOAD_PATH << __dir__
+
 require 'borg'
 
 Dotenv.load
@@ -73,15 +78,13 @@ class TestBackup
   private
 
   def test_files(files_and_shas)
-    retrieve_from_backup(files_and_shas.keys) do |files_and_retrieved_files|
-      files_and_retrieved_files.each do |file, retrieved_file|
-        backed_up_sha = Digest::SHA256.hexdigest(File.read(retrieved_file))
+    retrieve_from_backup(files_and_shas.keys) do |file, retrieved_file|
+      backed_up_sha = Digest::SHA256.hexdigest(File.read(retrieved_file))
 
-        if backed_up_sha == files_and_shas[file]
-          puts "SUCCESS: #{file}"
-        else
-          puts "ERROR! SHA mismatch for #{file}"
-        end
+      if backed_up_sha == files_and_shas[file]
+        puts "SUCCESS: #{file}"
+      else
+        puts "ERROR! SHA mismatch for #{file}"
       end
     end
   end
@@ -104,7 +107,24 @@ class TestBackup
     end
 
     File.open(SHAS_FILE_NAME, "w") do |file|
-      file.write({"shas" => files_and_shas}.to_yaml)
+      file.write({ "shas" => files_and_shas }.to_yaml)
+    end
+  end
+
+  def retrieve_from_b2(files)
+    tmp_path = "tmp_retrieve"
+
+    in_temp_dir(tmp_path) do
+      files.each do |filename|
+        Open3.popen3( "duplicacy cat #{Shellwords.shellescape(filename)}") do |_, stdout, stderr, wait_thread|
+          File.open(File.basename(filename), "w") do |download_file|
+            download_file.write(stdout.read)
+          end
+        end
+
+        download_path = File.expand_path(File.basename(filename))
+        yield [filename, download_path]
+      end
     end
   end
 
@@ -118,7 +138,9 @@ class TestBackup
         [file, File.expand_path(download_path)]
       end.to_h
 
-      yield inputs_and_absolute_download_paths
+      inputs_and_absolute_download_paths.each do |input, absolute_download_path|
+        yield [input, absolute_download_path]
+      end
     end
   end
 
@@ -151,15 +173,16 @@ class TestBackup
   end
 
   def all_photos
-    @all_photos ||= Dir.glob(File.join(PHOTOS_DIR, "**", "*.{JPG,jpg}"))
+    glob = File.join(PHOTOS_DIR, "**", "*.{JPG,jpg}")
+    @all_photos ||= Dir.glob(glob)
   end
 end
 
 backup_tester = TestBackup.new
 
 allowed_params = {
-  '--create-sha-file' => ->() { backup_tester.create_shas_file },
-  '--update-sha-file' => ->() { backup_tester.update_shas_file },
+  '--create-sha-file' => ->(_) { backup_tester.create_shas_file },
+  '--update-sha-file' => ->(_) { backup_tester.update_shas_file },
   '--test'            => ->(files) { backup_tester.update_shas_file ; backup_tester.test_file_selection(files) }
 }
 
