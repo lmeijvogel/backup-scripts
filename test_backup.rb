@@ -106,13 +106,12 @@ class TestBackup
 
     progress_bar = ProgressBar.create(total: additions.count, format: '|%w>%i| %c/%C (%e)')
 
-    files_and_shas = additions.inject(initial_collection) do |acc, file|
+    files_and_shas = additions.each_with_object(initial_collection) do |file, result|
       digest = Digest::SHA256.hexdigest(File.read(file))
 
       progress_bar.increment
 
-      acc[file] = digest
-      acc
+      result[file] = digest
     end
 
     File.open(SHAS_FILE_NAME, 'w') do |file|
