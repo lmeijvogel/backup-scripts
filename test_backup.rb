@@ -14,13 +14,13 @@ require 'ruby-progressbar'
 $LOAD_PATH << __dir__
 
 require 'borg'
+require 'b2'
 
 Dotenv.load
 
 PHOTOS_DIR = File.join(ENV.fetch('SOURCE_DIR'), 'My Pictures')
 
 SHAS_FILE_NAME = 'shas.yml'.freeze
-
 
 class TestBackup
   def create_shas_file
@@ -120,55 +120,15 @@ class TestBackup
   end
 
   def retrieve_from_backup(files, backend:)
-    if backend == 'b2'
-      retrieve_from_b2(files)
-    elsif backend == 'borg'
-      retrieve_from_borg(files)
-    else
-      raise "Unknown backend '#{backend}'"
-    end
-  end
+    engine = if backend == 'b2'
+               B2.new
+             elsif backend == 'borg'
+               Borg.new
+             else
+               raise "Unknown backend '#{backend}'"
+             end
 
-  def retrieve_from_b2(files)
-    Enumerator.new do |yielder|
-      files.each do |filename|
-        Open3.popen3("duplicacy cat #{Shellwords.shellescape(filename)}") do |_, stdout, _, _|
-          File.open(File.basename(filename), 'w') do |download_file|
-            download_file.write(stdout.read)
-          end
-        end
-
-        absolute_download_path = File.expand_path(File.basename(filename))
-
-        yielder.yield [filename, absolute_download_path]
-      end
-    end
-  end
-
-  def retrieve_from_borg(files)
-    Enumerator.new do |yielder|
-      input_and_download_paths = Borg.new.extract(files, archive_name: latest_archive)
-
-      inputs_and_absolute_download_paths = input_and_download_paths.to_a.map do |file, download_path|
-        [file, File.expand_path(download_path)]
-      end
-
-      inputs_and_absolute_download_paths.each do |filename, absolute_download_path|
-        yielder.yield [filename, absolute_download_path]
-      end
-    end
-  end
-
-  def latest_archive
-    archive_names = Borg.new.list.each_line.map(&:split).map(&:first)
-
-    archive_names.sort do |a, b|
-      if a.end_with?('.checkpoint') && !b.end_with?('.checkpoint') && a.start_with?(b)
-        -1
-      else
-        a <=> b
-      end
-    end.last
+    engine.retrieve(files)
   end
 
   def in_temp_dir(path)
