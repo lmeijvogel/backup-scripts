@@ -4,7 +4,9 @@ class Borg
   def list
     list_backups_command = "/usr/local/bin/borg list #{ENV.fetch('BORG_REPO')}"
 
-    stdout, = Open3.capture3(ENV, list_backups_command)
+    stdout, stderr = Open3.capture3(ENV, list_backups_command)
+
+    puts stderr
 
     stdout
   end
