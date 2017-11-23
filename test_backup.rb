@@ -13,8 +13,8 @@ require 'ruby-progressbar'
 
 $LOAD_PATH << __dir__
 
-require 'borg'
-require 'b2'
+require 'backends/borg'
+require 'backends/b2'
 
 Dotenv.load
 
@@ -121,9 +121,9 @@ class TestBackup
 
   def retrieve_from_backup(files, backend:)
     engine = if backend == 'b2'
-               B2.new
+               Backends::B2.new
              elsif backend == 'borg'
-               Borg.new
+               Backends::Borg.new
              else
                raise "Unknown backend '#{backend}'"
              end

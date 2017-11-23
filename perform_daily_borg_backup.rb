@@ -12,14 +12,14 @@ FileUtils.cd(__dir__)
 
 $LOAD_PATH << __dir__
 
-require 'borg'
+require 'backends/borg'
 
 Dotenv.load
 
 def get_backup_list
   return @names if @_names_set
 
-  @names = Borg.new.list.each_line.map(&:split).map(&:first)
+  @names = Backends::Borg.new.list.each_line.map(&:split).map(&:first)
 
   @_names_set = true
 
@@ -46,7 +46,7 @@ def perform_backup
 
   puts "Backing up to '#{backup_name}'"
 
-  Borg.new.backup(backup_name, source: ENV.fetch("SOURCE_DIR"))
+  Backends::Borg.new.backup(backup_name, source: ENV.fetch("SOURCE_DIR"))
 end
 
 perform_backup
