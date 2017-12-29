@@ -2,6 +2,7 @@ GEM
   remote: https://rubygems.org/
   specs:
     dotenv (2.1.1)
+    net-ssh (4.2.0)
     ruby-progressbar (1.8.1)
 
 PLATFORMS
@@ -9,7 +10,8 @@ PLATFORMS
 
 DEPENDENCIES
   dotenv
+  net-ssh
   ruby-progressbar
 
 BUNDLED WITH
-   1.13.6
+   1.15.4

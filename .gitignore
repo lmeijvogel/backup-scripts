@@ -1,3 +1,4 @@
 .env
 shas.yml
 .duplicacy
+.energie-backup.env
