@@ -1,3 +1,3 @@
-cd /home/lennaert/backup_duplicacy
+cd `dirname "$0"`
 
 /home/lennaert/bin/duplicacy backup
