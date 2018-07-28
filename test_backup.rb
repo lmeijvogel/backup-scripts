@@ -22,6 +22,8 @@ PHOTOS_DIR = File.join(ENV.fetch('SOURCE_DIR'), 'My Pictures')
 
 SHAS_FILE_NAME = 'shas.yml'.freeze
 
+class BackupError < StandardError; end
+
 class TestBackup
   def create_shas_file
     write_files_and_shas_to_file(initial_collection: {}, additions: all_photos)
@@ -85,17 +87,30 @@ class TestBackup
 
     tmp_path = 'tmp_retrieve'
 
+    all_successful = true
     in_temp_dir(tmp_path) do
       retrieve_from_backup(files_and_shas.keys, backend: ENV['BACKEND']).each do |file, retrieved_file|
-        backed_up_sha = Digest::SHA256.hexdigest(File.read(retrieved_file))
+        file_contents = File.read(retrieved_file)
+        backed_up_sha = Digest::SHA256.hexdigest(file_contents)
 
         if backed_up_sha == files_and_shas[file]
           puts "SUCCESS: #{file}"
         else
-          puts "ERROR! SHA mismatch for #{file}"
+          if file_contents =~ /not found in snapshot/
+            puts "ERROR! File #{file} not in backup!"
+          else
+            puts "ERROR! SHA mismatch for #{file} => #{retrieved_file}"
+            FileUtils.mkdir_p("/tmp/failed_files")
+
+            FileUtils.mv(retrieved_file, File.join("/tmp/failed_files", File.basename(retrieved_file)))
+          end
+
+          all_successful = false
         end
       end
     end
+
+    raise BackupError unless all_successful
   end
 
   def write_files_and_shas_to_file(initial_collection:, additions:)
@@ -175,4 +190,13 @@ if action.nil?
   exit 1
 end
 
-allowed_params[action].call(ARGV[1..-1])
+begin
+  allowed_params[action].call(ARGV[1..-1])
+rescue BackupError
+  exit 1
+rescue StandardError => e
+  puts "!! ERROR: Exception raised: #{e.message}"
+  puts e.backtrace
+
+  exit 2
+end
