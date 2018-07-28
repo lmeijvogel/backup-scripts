@@ -90,12 +90,13 @@ class TestBackup
     all_successful = true
     in_temp_dir(tmp_path) do
       retrieve_from_backup(files_and_shas.keys, backend: ENV['BACKEND']).each do |file, retrieved_file|
-        file_contents = File.read(retrieved_file)
-        backed_up_sha = Digest::SHA256.hexdigest(file_contents)
+        backed_up_sha = Digest::SHA256.file(retrieved_file).hexdigest
 
         if backed_up_sha == files_and_shas[file]
           puts "SUCCESS: #{file}"
         else
+          file_contents = File.read(retrieved_file)
+
           if file_contents =~ /not found in snapshot/
             puts "ERROR! File #{file} not in backup!"
           else
@@ -122,7 +123,7 @@ class TestBackup
     progress_bar = ProgressBar.create(total: additions.count, format: '|%w>%i| %c/%C (%e)')
 
     files_and_shas = additions.each_with_object(initial_collection) do |file, result|
-      digest = Digest::SHA256.hexdigest(File.read(file))
+      digest = Digest::SHA256.file(file).hexdigest
 
       progress_bar.increment
 
