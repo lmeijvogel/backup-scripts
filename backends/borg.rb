@@ -17,7 +17,7 @@ module Backends
     def backup(backup_name, source:)
       backup_path = "#{ENV.fetch('BORG_REPO')}::#{backup_name}"
 
-      command = "#{borg} create -v --progress --stats #{backup_path} #{Shellwords.shellescape(source)}"
+      command = "#{borg} create --exclude-from ./borg-excludes -v --progress --stats #{backup_path} #{Shellwords.shellescape(source)}"
 
       pid = spawn(ENV, command)
 
