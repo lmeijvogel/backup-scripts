@@ -10,6 +10,7 @@ require 'tempfile'
 
 require 'dotenv'
 require 'ruby-progressbar'
+require 'slop'
 
 $LOAD_PATH << __dir__
 
@@ -37,8 +38,9 @@ class TestBackup
     write_files_and_shas_to_file(initial_collection: existing_files_and_shas, additions: new_files)
   end
 
-  def test_file_selection(files)
-    if files.any?
+  def test_file_selection(files: nil, seed: random_seed)
+    if files && files.any?
+      puts 'Testing selected files'
       test_selected_files(files)
     else
       puts 'Testing latest files'
@@ -46,8 +48,15 @@ class TestBackup
 
       puts
 
-      puts 'Testing random files'
-      test_random_files
+      random = if (seed != :random_seed)
+                 Random.new(seed)
+               else
+                 Random.new
+               end
+
+      puts "Testing random files (random seed: #{random.seed})"
+
+      test_random_files(random: random)
     end
   end
 
@@ -65,8 +74,8 @@ class TestBackup
     test_files(selected_files_and_shas)
   end
 
-  def test_random_files
-    random_files_and_shas = files_and_shas.to_a.sample(10, random: SecureRandom).to_h
+  def test_random_files(random: SecureRandom)
+    random_files_and_shas = files_and_shas.to_a.sample(10, random: random).to_h
 
     test_files(random_files_and_shas)
   end
@@ -116,7 +125,7 @@ class TestBackup
 
   def write_files_and_shas_to_file(initial_collection:, additions:)
     if additions.length.zero?
-      puts 'No new files'
+      puts 'No new files to index'
       return
     end
 
@@ -171,28 +180,33 @@ end
 
 backup_tester = TestBackup.new
 
-allowed_params = {
-  '--create-sha-file' => ->(_) { backup_tester.create_shas_file },
-  '--update-sha-file' => ->(_) { backup_tester.update_shas_file },
-  '--test'            => ->(files) { backup_tester.update_shas_file ; backup_tester.test_file_selection(files) }
-}
+options = Slop.parse do |o|
+  o.banner = "usage: ./test_backup.rb [options] [files]"
 
-action = allowed_params.keys.detect do |key|
-  ARGV.include?(key)
+  o.bool '--create-sha-file', "Create a new SHA file"
+  o.bool '--update-sha-file', "Add new entries to the SHA file"
+  o.bool '--test', "Test backed up files against the SHA file database"
+  o.integer '--seed', "Seed the RNG for random files"
 end
 
+seed = options[:seed] || :random_seed
+files = options.arguments
+
+action = if options["create-sha-file"]
+           ->() { backup_tester.create_shas_file }
+         elsif options["update-sha-file"]
+           ->() { backup_tester.update_shas_file }
+         elsif options.test?
+           ->() { backup_tester.update_shas_file ; backup_tester.test_file_selection(files: files, seed: seed) }
+         end
+
 if action.nil?
-  puts 'Allowed actions: '
-
-  allowed_params.each_key do |param|
-    puts "  #{param}"
-  end
-
+  puts options
   exit 1
 end
 
 begin
-  allowed_params[action].call(ARGV[1..-1])
+  action.call
 rescue BackupError
   exit 1
 rescue StandardError => e

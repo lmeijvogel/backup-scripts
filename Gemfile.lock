@@ -4,6 +4,7 @@ GEM
     dotenv (2.1.1)
     net-ssh (4.2.0)
     ruby-progressbar (1.8.1)
+    slop (4.0.0)
 
 PLATFORMS
   ruby
@@ -12,6 +13,7 @@ DEPENDENCIES
   dotenv
   net-ssh
   ruby-progressbar
+  slop (~> 4.0.0)
 
 BUNDLED WITH
    1.15.4
