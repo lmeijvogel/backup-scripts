@@ -3,7 +3,7 @@ require 'open3'
 module Backends
   class Borg
     def list
-      list_backups_command = "/usr/local/bin/borg list #{ENV.fetch('BORG_REPO')}"
+      list_backups_command = "#{borg} list #{ENV.fetch('BORG_REPO')}"
 
       puts list_backups_command
 
@@ -62,7 +62,7 @@ module Backends
     end
 
     def borg
-      '/usr/local/bin/borg'
+      '/usr/bin/borg'
     end
   end
 end
