@@ -2,3 +2,5 @@
 shas.yml
 .duplicacy
 .energie-backup.env
+.backup_errors
+.backup_status
