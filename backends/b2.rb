@@ -7,12 +7,20 @@ module Backends
         files.each do |filename|
           output_basename = File.basename(filename)
           Open3.popen3("duplicacy cat #{Shellwords.shellescape(filename)}") do |_, stdout, _, _|
-            IO.binwrite(output_basename, stdout.read)
+            file_contents = stdout.read
+
+            # Don't use regex match, since that might fail if the file looks enough like unicode.
+            if file_contents.include?("found in snapshot")
+              # File not found in backup
+              yielder.yield [filename, nil]
+            else
+              IO.binwrite(output_basename, file_contents)
+
+              absolute_download_path = File.expand_path(output_basename)
+
+              yielder.yield [filename, absolute_download_path]
+            end
           end
-
-          absolute_download_path = File.expand_path(output_basename)
-
-          yielder.yield [filename, absolute_download_path]
         end
       end
     end

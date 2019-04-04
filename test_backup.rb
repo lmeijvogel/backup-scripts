@@ -100,21 +100,29 @@ class TestBackup
     in_temp_dir(tmp_path) do
       retrieve_from_backup(files_and_shas.keys, backend: ENV['BACKEND']).each do |file, retrieved_file|
         begin
+          $stdout.write("#{file}: ")
+          $stdout.flush
+
+          unless retrieved_file
+            puts "ERROR! File not in backup!"
+
+            all_successful = false
+            next
+          end
+
           backed_up_sha = Digest::SHA256.file(retrieved_file).hexdigest
+          stored_sha = files_and_shas[file]
 
-          if backed_up_sha == files_and_shas[file]
-            puts "SUCCESS: #{file}"
+          if backed_up_sha == stored_sha
+            puts "SUCCESS"
           else
-            file_contents = IO.binread(retrieved_file)
+            puts "ERROR! SHA mismatch for #{file} => #{retrieved_file}"
+            puts "SHA: backed up '#{backed_up_sha}' != stored '#{stored_sha}'"
+            FileUtils.mkdir_p("/tmp/failed_files")
 
-            if file_contents =~ /not found in snapshot/
-              puts "ERROR! File #{file} not in backup!"
-            else
-              puts "ERROR! SHA mismatch for #{file} => #{retrieved_file}"
-              FileUtils.mkdir_p("/tmp/failed_files")
+            FileUtils.mv(retrieved_file, File.join("/tmp/failed_files", File.basename(retrieved_file)))
 
-              FileUtils.mv(retrieved_file, File.join("/tmp/failed_files", File.basename(retrieved_file)))
-            end
+            all_successful = false
           end
         rescue StandardError => e
           $stdout.puts("ERROR: Exception occurred! #{e.message}")
