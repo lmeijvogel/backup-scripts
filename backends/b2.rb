@@ -5,13 +5,12 @@ module Backends
     def retrieve(files)
       Enumerator.new do |yielder|
         files.each do |filename|
+          output_basename = File.basename(filename)
           Open3.popen3("duplicacy cat #{Shellwords.shellescape(filename)}") do |_, stdout, _, _|
-            File.open(File.basename(filename), 'w') do |download_file|
-              download_file.write(stdout.read)
-            end
+            IO.binwrite(output_basename, stdout.read)
           end
 
-          absolute_download_path = File.expand_path(File.basename(filename))
+          absolute_download_path = File.expand_path(output_basename)
 
           yielder.yield [filename, absolute_download_path]
         end

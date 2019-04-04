@@ -104,7 +104,7 @@ class TestBackup
         if backed_up_sha == files_and_shas[file]
           puts "SUCCESS: #{file}"
         else
-          file_contents = File.read(retrieved_file)
+          file_contents = IO.binread(retrieved_file)
 
           if file_contents =~ /not found in snapshot/
             puts "ERROR! File #{file} not in backup!"
