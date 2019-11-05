@@ -96,45 +96,49 @@ class TestBackup
 
     tmp_path = 'tmp_retrieve'
 
-    all_successful = true
-    in_temp_dir(tmp_path) do
-      retrieve_from_backup(files_and_shas.keys, backend: ENV['BACKEND']).each do |file, retrieved_file|
-        begin
-          $stdout.write("#{file}: ")
-          $stdout.flush
-
-          unless retrieved_file
-            puts "ERROR! File not in backup!"
-
-            all_successful = false
-            next
-          end
-
-          backed_up_sha = Digest::SHA256.file(retrieved_file).hexdigest
-          stored_sha = files_and_shas[file]
-
-          if backed_up_sha == stored_sha
-            puts "SUCCESS"
-          else
-            puts "ERROR! SHA mismatch for #{file} => #{retrieved_file}"
-            puts "SHA: backed up '#{backed_up_sha}' != stored '#{stored_sha}'"
-            FileUtils.mkdir_p("/tmp/failed_files")
-
-            FileUtils.mv(retrieved_file, File.join("/tmp/failed_files", File.basename(retrieved_file)))
-
-            all_successful = false
-          end
-        rescue StandardError => e
-          $stdout.puts("ERROR: Exception occurred! #{e.message}")
-
-          all_successful = false
-
-          raise
-        end
+    all_successful = in_temp_dir(tmp_path) do
+      retrieve_from_backup(files_and_shas.keys, backend: ENV['BACKEND']).all? do |file, retrieved_file|
+        test_backup_file(file,retrieved_file)
       end
     end
 
     raise BackupError unless all_successful
+  end
+
+  def test_backup_file(file, retrieved_file)
+    file_successful = true
+
+    $stdout.write("#{file}: ")
+    $stdout.flush
+
+    unless retrieved_file
+      puts "ERROR! File not in backup!"
+
+      return false
+    end
+
+    backed_up_sha = Digest::SHA256.file(retrieved_file).hexdigest
+    stored_sha = files_and_shas[file]
+
+    if backed_up_sha == stored_sha
+      puts "SUCCESS"
+    else
+      puts "ERROR! SHA mismatch for #{file} => #{retrieved_file}"
+      puts "SHA: backed up '#{backed_up_sha}' != stored '#{stored_sha}'"
+      FileUtils.mkdir_p("/tmp/failed_files")
+
+      FileUtils.mv(retrieved_file, File.join("/tmp/failed_files", File.basename(retrieved_file)))
+
+      file_successful = false
+    end
+
+    file_successful
+  rescue StandardError => e
+    $stdout.puts("ERROR: Exception occurred! #{e.message}")
+
+    file_successful = false
+
+    raise
   end
 
   def write_files_and_shas_to_file(initial_collection:, additions:)
