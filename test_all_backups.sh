@@ -6,6 +6,8 @@
 BACKUP_STATUS_FILE=./.backup_status
 BACKUP_ERROR_LOG_FILE=./.backup_errors
 
+any_failures=false
+
 echo -n "Testing energie backup file for today's date..."
 last_insert_was_today=$(grep "INSERT INTO" /data/user_data/energie_dump.sql \
   | tail -n 1 \
@@ -22,7 +24,7 @@ else
   echo
   echo "!!!! ERROR: Energie backup file is outdated!"
   echo "energy_download: error" >> $BACKUP_STATUS_FILE
-  exit 1
+  any_failures=true
 fi
 
 echo -n "Testing borg backup for most recent photos and random file integrity..."
@@ -42,7 +44,7 @@ else
   echo "error" >> $BACKUP_STATUS_FILE
   echo "Borg errors:" > $BACKUP_ERROR_LOG_FILE
   echo $borg_output >> $BACKUP_ERROR_LOG_FILE
-  exit 1
+  any_failures=true
 fi
 
 echo -n "Testing B2 backup for most recent photos and random file integrity..."
@@ -63,5 +65,12 @@ else
   echo "error" >> $BACKUP_STATUS_FILE
   echo "B2 errors:" > $BACKUP_ERROR_LOG_FILE
   echo $b2_output >> $BACKUP_ERROR_LOG_FILE
+  any_failures=true
+fi
+
+if [[ "$any_failures" = true ]]; then
+  echo "Failures occurred!"
   exit 1
+else
+  exit 0
 fi
