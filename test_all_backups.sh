@@ -27,7 +27,7 @@ fi
 
 echo -n "Testing borg backup for most recent photos and random file integrity..."
 export BACKEND=borg
-borg_output=$(./test_backup.rb --test)
+borg_output=$(bundle exec ruby ./test_backup.rb --test)
 
 BORG_STATUS=$?
 echo -n "borg_status: " >> $BACKUP_STATUS_FILE
@@ -47,7 +47,7 @@ fi
 
 echo -n "Testing B2 backup for most recent photos and random file integrity..."
 export BACKEND=b2
-b2_output=$(./test_backup.rb --test)
+b2_output=$(bundle exec ruby ./test_backup.rb --test)
 
 B2_STATUS=$?
 
