@@ -3,7 +3,11 @@ module Backends
     def retrieve(files)
       Enumerator.new do |yielder|
         files.each do |filename|
-          file_contents, _, _ = Open3.capture3("duplicacy cat #{Shellwords.shellescape(filename)}")
+          file_contents, stderr, status = Open3.capture3(
+            "/home/lennaert/bin/duplicacy",
+            "cat",
+            filename
+          )
 
           # Don't use regex match, since that might fail if the file looks enough like unicode.
           if file_contents.include?("found in snapshot")
