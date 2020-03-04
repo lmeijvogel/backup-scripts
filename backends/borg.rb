@@ -3,13 +3,11 @@ require 'open3'
 module Backends
   class Borg
     def list
-      list_backups_command = "#{borg} list #{ENV.fetch('BORG_REPO')}"
-
-      puts list_backups_command
-
-      stdout, stderr = Open3.capture3(ENV, list_backups_command)
-
-      puts stderr
+      stdout, stderr, status = Open3.capture3(ENV,
+                                              borg,
+                                              "list",
+                                              ENV.fetch('BORG_REPO')
+                                             )
 
       stdout
     end
