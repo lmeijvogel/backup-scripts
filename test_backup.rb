@@ -26,6 +26,12 @@ SHAS_FILE_NAME = 'shas.yml'.freeze
 class BackupError < StandardError; end
 
 class TestBackup
+  attr_accessor :show_progress_bar
+
+  def initialize
+    @show_progress_bar = true
+  end
+
   def create_shas_file
     write_files_and_shas_to_file(initial_collection: {}, additions: all_photos)
   end
@@ -147,12 +153,16 @@ class TestBackup
       return
     end
 
-    progress_bar = ProgressBar.create(total: additions.count, format: '|%w>%i| %c/%C (%e)')
+    if @show_progress_bar
+      progress_bar = ProgressBar.create(total: additions.count, format: '|%w>%i| %c/%C (%e)')
+    end
 
     files_and_shas = additions.each_with_object(initial_collection) do |file, result|
       digest = Digest::SHA256.file(file).hexdigest
 
-      progress_bar.increment
+      if @show_progress_bar
+        progress_bar.increment
+      end
 
       result[file] = digest
     end
@@ -201,6 +211,7 @@ backup_tester = TestBackup.new
 options = Slop.parse do |o|
   o.banner = "usage: ./test_backup.rb [options] [files]"
 
+  o.bool '--no-progress-bar', "Do not show progress bar"
   o.bool '--create-sha-file', "Create a new SHA file"
   o.bool '--update-sha-file', "Add new entries to the SHA file"
   o.bool '--test', "Test backed up files against the SHA file database"
@@ -209,6 +220,10 @@ end
 
 seed = options[:seed] || :random_seed
 files = options.arguments
+
+if options[:no_progress_bar]
+  backup_tester.show_progress_bar = false
+end
 
 action = if options["create-sha-file"]
            ->() { backup_tester.create_shas_file }
