@@ -1,25 +1,22 @@
-require 'shellwords'
-
 module Backends
   class B2
     def retrieve(files)
       Enumerator.new do |yielder|
         files.each do |filename|
-          output_basename = File.basename(filename)
-          Open3.popen3("duplicacy cat #{Shellwords.shellescape(filename)}") do |_, stdout, _, _|
-            file_contents = stdout.read
+          file_contents, _, _ = Open3.capture3("duplicacy cat #{Shellwords.shellescape(filename)}")
 
-            # Don't use regex match, since that might fail if the file looks enough like unicode.
-            if file_contents.include?("found in snapshot")
-              # File not found in backup
-              yielder.yield [filename, nil]
-            else
-              IO.binwrite(output_basename, file_contents)
+          # Don't use regex match, since that might fail if the file looks enough like unicode.
+          if file_contents.include?("found in snapshot")
+            # File not found in backup
+            yielder.yield [filename, nil]
+          else
+            output_basename = File.basename(filename)
 
-              absolute_download_path = File.expand_path(output_basename)
+            IO.binwrite(output_basename, file_contents)
 
-              yielder.yield [filename, absolute_download_path]
-            end
+            absolute_download_path = File.expand_path(output_basename)
+
+            yielder.yield [filename, absolute_download_path]
           end
         end
       end
