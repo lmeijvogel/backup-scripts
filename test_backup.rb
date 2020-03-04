@@ -44,6 +44,22 @@ class TestBackup
     write_files_and_shas_to_file(initial_collection: existing_files_and_shas, additions: new_files)
   end
 
+  def test_shas_file
+    photos = all_photos
+    progress_bar = ProgressBar.create(total: photos.count, format: '|%w>%i| %c/%C (%e)')
+
+    photos.each do |file|
+      actual_sha = Digest::SHA256.file(file).hexdigest
+      stored_sha = files_and_shas[file]
+
+      if actual_sha != stored_sha
+        puts "ERROR: #{file} has a different SHA digest than expected"
+      end
+
+      progress_bar.increment
+    end
+  end
+
   def test_file_selection(files: nil, seed: random_seed)
     if files && files.any?
       puts 'Testing selected files'
@@ -215,6 +231,7 @@ options = Slop.parse do |o|
   o.bool '--create-sha-file', "Create a new SHA file"
   o.bool '--update-sha-file', "Add new entries to the SHA file"
   o.bool '--test', "Test backed up files against the SHA file database"
+  o.bool '--test-sha-file', "Test SHA file database against existing files"
   o.integer '--seed', "Seed the RNG for random files"
 end
 
@@ -231,6 +248,8 @@ action = if options["create-sha-file"]
            ->() { backup_tester.update_shas_file }
          elsif options.test?
            ->() { backup_tester.update_shas_file ; backup_tester.test_file_selection(files: files, seed: seed) }
+         elsif options["test-sha-file"]
+           ->() { backup_tester.test_shas_file }
          end
 
 if action.nil?
