@@ -4,7 +4,9 @@ module Backends
       Enumerator.new do |yielder|
         files.each do |filename|
           file_contents, stderr, status = Open3.capture3(
-            "/home/lennaert/bin/duplicacy",
+            "/usr/bin/duplicacy",
+            "-suppress",
+            "BACKBLAZE_URL",
             "cat",
             filename
           )
