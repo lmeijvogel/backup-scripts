@@ -3,7 +3,7 @@ These are my scripts for running Borgbackup scripts and performing random checks
 NOTE: I do the infrastructural part with Ansible:
 * Installing borg on the server, and
 * making sure SSH access, and
-* creating the repository path.
+* creating the repository path - this needs to exist for borg to work properly.
 
 Initializing a new borgbackup repository:
 
@@ -14,7 +14,7 @@ $ cd ~backup
 $ mkdir -p repo/repos/desktop
 ```
 
-To make client access to the server possible, create a ssh keypair on the client and allow it to access the server.
+To make client access to the server possible, create an ssh keypair on the client and allow it to access the server.
 You should restrict what that SSH key is allowed to do after logging in: you can set a mandatory command that it
 should execute (and nothing else). For example:
 ```
@@ -26,20 +26,24 @@ Which is all on one line and where `ssh-rsa xxsshkeyxx backup-client@workstation
 
 Then initialize the repository from the client (it should have SSH access):
 
+This is the exact command that is run by ./borg-init.sh
+
 ```
-  $ borg init --encryption=repokey --append-only backup@backup-host:desktop                                                                       2 ↵
+  $ borg init --encryption=repokey --append-only backup@backup-host:desktop
   Enter new passphrase: 
   Enter same passphrase again: 
   Do you want your passphrase to be displayed for verification? [yN]: y
 ```
 
-Now, add the passphrase to the .env file, and add the backup server location and source location as well:
+Now, add the passphrase to the .env file in this repo, and add the backup server location and source location as well:
 ```
 SOURCE_DIR=data/user_data
 BORG_REPO=backup@backup-host:desktop
 BORG_PASSPHRASE=xxxx
 BACKUP_NAME_PREFIX=desktop
 ```
+
+Also, store the key file created by borg, as well as the passphrase in Lastpass and, ideally, physically like a printed QR code.
 
 The backup name prefix does not have to match the path in BORG_REPO, it is used to "name" consecutive backups;
 the script will generate names like `desktop-2017-11-18`

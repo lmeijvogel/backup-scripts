@@ -1,5 +1,9 @@
 #!/usr/bin/env ruby
 
+require 'bundler'
+
+Bundler.load
+
 require 'dotenv'
 require 'tempfile'
 require 'fileutils'
