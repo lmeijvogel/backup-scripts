@@ -53,15 +53,51 @@ class TestBackup
     photos = all_photos
     progress_bar = ProgressBar.create(total: photos.count, format: '|%w>%i| %c/%C (%e)')
 
+    mismatches = []
+
     photos.each do |file|
       actual_sha = Digest::SHA256.file(file).hexdigest
       stored_sha = files_and_shas[file]
 
       if actual_sha != stored_sha
         puts "ERROR: #{file} has a different SHA digest than expected"
+        mismatches << file
       end
 
       progress_bar.increment
+    end
+
+    corrections = []
+
+    skip_rest = false
+    corrections = mismatches.select do |file|
+      if skip_rest
+        false
+      else
+        puts "Difference in: #{file}"
+        $stdout.write "Action: [V]iew [S]ave s[K]ip [Q]uit: "
+        response = $stdin.gets
+        response.strip
+
+        case response
+        when /v/i
+          system("gwenview", file)
+
+          ask("Action: [S]ave s[K]ip", /s/i, default: true)
+        when /[s|y]/i
+          true
+        when /[k|n]/i
+          false
+        when /q/i
+          skip_rest = true
+        end
+      end
+    end
+
+    if corrections.any?
+      if ask("Save to file? [Yn]", /y/i, default: true)
+        write_files_and_shas_to_file(initial_collection: files_and_shas, additions: corrections)
+      end
     end
   end
 
@@ -223,7 +259,19 @@ class TestBackup
 
   def all_photos
     glob = File.join(PHOTOS_DIR, '**', '*.{JPG,jpg}')
-    @all_photos ||= Dir.glob(glob)
+    @all_photos ||= Dir.glob(glob).grep_v(/thumbs/)
+  end
+
+  def ask(message, matcher, default:)
+    puts
+    puts message
+
+    response = $stdin.gets
+    response.strip!
+
+    return default if response.empty?
+
+    response.match(matcher)
   end
 end
 
