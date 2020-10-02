@@ -61,7 +61,7 @@ if [[ "$B2_STATUS" == "0" ]]; then
 else
   echo
   echo "!!!! ERROR: B2 backup contains mismatches or is outdated"
-  echo $b2_output
+  echo "$b2_output"
   echo "error" >> $BACKUP_STATUS_FILE
   echo "B2 errors:" > $BACKUP_ERROR_LOG_FILE
   echo $b2_output >> $BACKUP_ERROR_LOG_FILE
