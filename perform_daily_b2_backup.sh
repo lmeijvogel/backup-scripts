@@ -1,3 +1,3 @@
 cd `dirname "$0"`
 
-/home/lennaert/bin/duplicacy backup
+/usr/bin/duplicacy backup
