@@ -1,4 +1,9 @@
 #!/usr/bin/env ruby
+
+require 'bundler'
+
+Bundler.load
+
 require 'securerandom'
 require 'digest'
 require 'fileutils'

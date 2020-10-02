@@ -5,6 +5,10 @@ require 'open3'
 require 'shellwords'
 require 'fileutils'
 
+require 'bundler'
+
+Bundler.load
+
 require 'dotenv'
 
 # This is necessary for running the script with `bash -c` from Scheduled Tasks
